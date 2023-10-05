@@ -13,6 +13,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build the hello-docker Docker image
         run: |
-          docker build . --tag ghcr.io/rehark/lead_dev:latest
-          docker run ghcr.io/rehark/lead_dev:latest
-          docker push ghcr.io/rehark/lead_dev:latest
+          docker build . --tag ghcr.io/rehark/lead_dev:staging
+          docker run ghcr.io/rehark/lead_dev:staging
+          docker push ghcr.io/rehark/lead_dev:staging
