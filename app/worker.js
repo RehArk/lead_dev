@@ -122,7 +122,7 @@ async function messageHandler (message) {
 
   message.ack();
 
-};
+}
 
 async function listenForMessages(nameOfTopicAndSubscription) {  
 

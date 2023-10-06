@@ -35,54 +35,55 @@ function route(app) {
       ejsLocalVariables.invalidParameters = true;
       return res.render('index', ejsLocalVariables);
     }
+    const handlePhotos = async (photos) => {
+      ejsLocalVariables.photos = photos;
+      ejsLocalVariables.searchResults = true;
+
+      function find(tags, tagmode) {
+        return dataZip.find((elem) => {
+          if(elem.tags === tags && elem.tagmode == tagmode) {
+            return true;
+          }
+          return false;
+        })
+      }
+
+      console.log(dataZip)
+  
+      const zip = find(tags, tagmode);
+
+      console.log(zip)
+
+      if(zip) {
+
+        console.log('zip',process.env.STORAGE_BUCKET)
+  
+        const options = { 
+          action: 'read',
+          expires: moment().add(2, 'days').unix() * 1000
+        };
+
+        let storage = new Storage();
+      
+        const signedUrls = await storage
+          .bucket(process.env.STORAGE_BUCKET)
+          .file(zip.name)
+          .getSignedUrl(options)
+        ;
+
+        console.log(signedUrls[0])
+
+        ejsLocalVariables.signedUrls = signedUrls[0];
+
+      }
+
+      return res.render('index', ejsLocalVariables);
+    };
 
     // get photos from flickr public feed api
     return photoModel
       .getFlickrPhotos(tags, tagmode)
-      .then(async (photos) => {
-        ejsLocalVariables.photos = photos;
-        ejsLocalVariables.searchResults = true;
-
-        function find(tags, tagmode) {
-          return dataZip.find((elem) => {
-            if(elem.tags === tags && elem.tagmode == tagmode) {
-              return true;
-            }
-            return false;
-          })
-        }
-
-        console.log(dataZip)
-    
-        zip = find(tags, tagmode);
-
-        console.log(zip)
-
-        if(zip) {
-
-          console.log('zip',process.env.STORAGE_BUCKET)
-    
-          const options = { 
-            action: 'read',
-            expires: moment().add(2, 'days').unix() * 1000
-          };
-
-          let storage = new Storage();
-        
-          const signedUrls = await storage
-            .bucket(process.env.STORAGE_BUCKET)
-            .file(zip.name)
-            .getSignedUrl(options)
-          ;
-
-          console.log(signedUrls[0])
-
-          ejsLocalVariables.signedUrls = signedUrls[0];
-
-        }
-
-        return res.render('index', ejsLocalVariables);
-      })
+      .then(handlePhotos)
       .catch(error => {
         console.log(error)
         return res.status(500).send({ error });
