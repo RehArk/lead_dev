@@ -19,6 +19,44 @@
         <% }) %>
       </ul>
 
+      <button type="button" class="btn btn-primary" onclick="zip()">Export</button>
+
+      <script>
+
+        async function requestServer(method = "POST", url = "", data = {}) {
+console.log('request')
+          const response = await fetch(url, {
+            method: method,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+          });
+
+          return response.json();
+
+        }
+
+        function zip() {
+          
+          let tags = document.getElementById("tags").value;
+          let tagmode = document.getElementById("tagmode").value;
+
+          let data = {
+            tags: tags,
+            tagmode, tagmode
+          }
+
+          requestServer("POST", "/zip", data)
+            .then((r) => {
+              console.log(r)
+            })
+          ;
+
+        }
+
+      </script>
+
     <% } else { %>
       <div class="alert alert-info"><strong>No results</strong></div>
     <% } %>
