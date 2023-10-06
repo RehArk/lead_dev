@@ -56,9 +56,10 @@ function uuidv4() {
 
 }
 
-async function zipImage(name, queue) {
+async function zipImage(stream, queue) {
 
   var zip = new ZipStream()
+  zip.pipe(stream)
 
   function addNextFile() {
 
@@ -85,40 +86,26 @@ async function zipImage(name, queue) {
 
   addNextFile();
 
-  zip.pipe(fs.createWriteStream(name));
-
 }
 
-async function pushOnDrive(temp_file, folder_to_upload) {
-
+async function pushOnDrive(temp_file) {
+  
   let storage = new Storage();
 
   const file = await storage
-    .bucket('zip_bucket')
+    .bucket('dmii2023bucket')
     .file('public/users/' + temp_file)
   ;
 
   const stream = file.createWriteStream({
     metadata: {
-      contentType: uploadedFile.mimetype,
+      contentType: 'application/zip',
       cacheControl: 'private'
     },
     resumable: false
   });
 
-  return new Promise ((resolve, reject) => {
-
-    stream.on('error', (err) => {
-      reject(err);
-    });
-
-    stream.on('finish', () => {
-      resolve('Ok');
-    });
-
-    stream.end(uploadedFile.buffer);
-    
-  });
+  return stream;
 
 }
 
@@ -131,10 +118,10 @@ async function messageHandler (message) {
   images = images.slice(0, 10);
   
   let file_name = uuidv4();
-  let temp_file = './app/public/images/temp/' + file_name + '.zip';
 
-  await zipImage(temp_file, images);
-  await pushOnDrive(file_name, temp_file);
+  const stream = await pushOnDrive(file_name);
+  zipImage(stream, images);
+  
     
   // fs.mkdirSync(tempFolder);
 
