@@ -6,9 +6,10 @@ const { Storage } = require('@google-cloud/storage');
 
 const photoModel = require('./photo_model');
 
-const https = require('https');
 const request = require('request');
 const ZipStream = require('zip-stream');
+
+const dataZip = require('./dataZip');
 
 // Creates a client; cache this for further use
 var pubSubClient = null;
@@ -33,16 +34,6 @@ async function getImages(data) {
   ;
 
   return ejsLocalVariables.photos;
-
-}
-
-function downloadImage(tempFolder, image) {
-
-  const fileurl = fs.createWriteStream(tempFolder + '/' + image.title.replaceAll(' ', '_') + '.jpg');
-
-  https.get(image.media.b, (response) => {
-    response.pipe(fileurl);
-  });
 
 }
 
@@ -93,8 +84,8 @@ async function pushOnDrive(temp_file) {
   let storage = new Storage();
 
   const file = await storage
-    .bucket('dmii2023bucket')
-    .file('public/users/' + temp_file)
+    .bucket(process.env.STORAGE_BUCKET)
+    .file(temp_file)
   ;
 
   const stream = file.createWriteStream({
@@ -117,17 +108,17 @@ async function messageHandler (message) {
 
   images = images.slice(0, 10);
   
-  let file_name = uuidv4();
+  let file_name = 'public/users/' + uuidv4();
 
   const stream = await pushOnDrive(file_name);
   zipImage(stream, images);
-  
-    
-  // fs.mkdirSync(tempFolder);
 
-  // for(let image of images) {
-  //   // downloadImage(tempFolder, image);
-  // }
+  dataZip.push({
+    tags: data.tags,
+    tagmode: data.tagmode,
+    name: file_name,
+    zipped: true
+  })
 
   message.ack();
 
@@ -146,7 +137,7 @@ async function listenForMessages(nameOfTopicAndSubscription) {
 fs.readFile(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8', (err, data) => {
 
     if (err) {
-      // console.error(err);
+      console.error(err);
       return;
     }
 

@@ -1,10 +1,13 @@
 const fs = require('fs');
 
 const {PubSub} = require('@google-cloud/pubsub');
+const { Storage } = require('@google-cloud/storage');
 
 const formValidator = require('./form_validator');
 const photoModel = require('./photo_model');
-const { request } = require('http');
+
+const dataZip = require('./dataZip');
+const moment = require('moment');
 
 function route(app) {
 
@@ -18,7 +21,8 @@ function route(app) {
       tagmodeParameter: tagmode || '',
       photos: [],
       searchResults: false,
-      invalidParameters: false
+      invalidParameters: false,
+      signedUrls: false
     };
 
     // if no input params are passed in then render the view with out querying the api
@@ -35,12 +39,52 @@ function route(app) {
     // get photos from flickr public feed api
     return photoModel
       .getFlickrPhotos(tags, tagmode)
-      .then(photos => {
+      .then(async (photos) => {
         ejsLocalVariables.photos = photos;
         ejsLocalVariables.searchResults = true;
+
+        function find(tags, tagmode) {
+          return dataZip.find((elem) => {
+            if(elem.tags === tags && elem.tagmode == tagmode) {
+              return true;
+            }
+            return false;
+          })
+        }
+
+        console.log(dataZip)
+    
+        zip = find(tags, tagmode);
+
+        console.log(zip)
+
+        if(zip) {
+
+          console.log('zip',process.env.STORAGE_BUCKET)
+    
+          const options = { 
+            action: 'read',
+            expires: moment().add(2, 'days').unix() * 1000
+          };
+
+          let storage = new Storage();
+        
+          const signedUrls = await storage
+            .bucket(process.env.STORAGE_BUCKET)
+            .file(zip.name)
+            .getSignedUrl(options)
+          ;
+
+          console.log(signedUrls[0])
+
+          ejsLocalVariables.signedUrls = signedUrls[0];
+
+        }
+
         return res.render('index', ejsLocalVariables);
       })
       .catch(error => {
+        console.log(error)
         return res.status(500).send({ error });
       });
 
@@ -83,6 +127,18 @@ function route(app) {
 
   });
 
+  // app.get('/getZip', async (req, res) => {
+
+  //   const tags = req.body.tags;
+  //   const tagmode = req.body.tagmode;
+
+
+
+  //   console.log(signedUrls);
+  
+  // })
+
 }
+
 
 module.exports = route;

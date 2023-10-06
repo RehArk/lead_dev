@@ -19,12 +19,16 @@
         <% }) %>
       </ul>
 
-      <button type="button" class="btn btn-primary" onclick="zip()">Export</button>
+      <% if (signedUrls) { %>
+        <a href="<%= signedUrls %>" class="btn btn-primary">Download</a>
+      <% } else { %>
+        <button type="button" class="btn btn-primary" onclick="zip()">Export</button>
+      <% } %>
+
 
       <script>
 
         async function requestServer(method = "POST", url = "", data = {}) {
-console.log('request')
           const response = await fetch(url, {
             method: method,
             headers: {
